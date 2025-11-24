@@ -65,3 +65,34 @@ For example:
 - Usernames can’t have weird or invalid characters.
 - Passwords must be a certain length and meet basic complexity.
 I handled this using our own middleware (validateProfileUpdate) and express-validator.
+
+**Output Encoding**
+To prevent attacks like XSS, we made sure special characters like quotes ('), <, and > are safely encoded when showing user inputs on the page.
+
+**Encryption**
+Protected sensitive data by:
+- Hashing passwords with bcrypt before saving them in the database.
+- Encrypting user bios using a custom encryption service.
+- Using crypto.randomBytes() to make secure, random tokens for email verification and password resets.
+
+**Dependency Management**
+I used npm to manage all third-party libraries. 
+Some important ones include:
+express – server framework
+mongoose – MongoDB ODM
+bcrypt – password hashing
+jsonwebtoken – JWT authentication
+dotenv – managing environment variables
+crypto – generating secure tokens
+
+
+## LESSON LEARNED
+- Role-based state – At first, updating a user’s role didn’t update the UI immediately, so the Admin Panel was always showing. I fixed this by passing a callback (onUserUpdate) from App.jsx to Profile.jsx to keep the user state synced.
+
+- Email verification flow – Keeping the verified status consistent after profile updates was tricky. I solved it by separating pendingEmail from the main email and only updating the verified flag after the user confirmed the change.
+
+- Handling special characters / XSS – I learned that even small things like quotes in a bio could break the page or be a security risk, so encoding outputs properly was super important.
+
+- Debugging API and frontend – Figuring out why some fetch requests failed (400/500 errors) taught us to manage errors carefully and make sure the frontend updates properly.
+
+- Testing security – We tried entering SQL injection strings and XSS code to make sure our validations and encodings actually worked.

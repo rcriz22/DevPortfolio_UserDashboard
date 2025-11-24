@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { getProfile } from "../api";
 import "../styles/profile.css";
 
-export default function Profile() {
+export default function Profile({onUserUpdate} ) {
   const [profile, setProfile] = useState(null);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
@@ -75,50 +75,84 @@ export default function Profile() {
 
   // --- Verify email ---
   const handleVerifyCode = async () => {
-    if (!verificationCode) return setMessage("Please enter the code.");
-    try {
-      const res = await fetch("https://localhost:3000/api/email/verify", {
-        method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ code: verificationCode })
-      });
-      const data = await res.json();
-      if (data.error) setMessage(data.error);
-      else {
-        setMessage(data.message);
-        setProfile(prev => ({ ...prev, email: formData.email, isVerified: true }));
-        setIsVerifying(false);
-        setVerificationCode("");
-      }
-    } catch (err) {
-      console.error(err);
-      setMessage("Failed to verify code.");
+  if (!verificationCode) return setMessage("Please enter the code.");
+  try {
+    const res = await fetch("https://localhost:3000/api/email/verify", {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ code: verificationCode })
+    });
+    const data = await res.json();
+
+    if (data.error) {
+      setMessage(data.error);
+      return;
     }
-  };
+
+    // Update profile with verified email
+    setProfile(prev => ({
+      ...prev,
+      email: data.email,
+      isVerified: true
+    }));
+    setMessage("Email verified successfully!");
+    setIsVerifying(false);
+    setVerificationCode("");
+  } catch (err) {
+    console.error(err);
+    setMessage("Failed to verify code.");
+  }
+};
 
   // --- Update profile ---
   const handleUpdateProfile = async (e) => {
-    e.preventDefault();
-    setMessage("");
-    try {
-      const body = { username: formData.username, email: formData.email, bio: formData.bio };
-      if (profile.role === "Admin") body.role = formData.role;
+  e.preventDefault();
+  setMessage("");
+  try {
+    const body = { username: formData.username, email: formData.email, bio: formData.bio };
+    if (profile.role === "Admin") body.role = formData.role;
 
-      const res = await fetch("https://localhost:3000/api/update-profile", {
-        method: "PUT",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body)
+    const res = await fetch("https://localhost:3000/api/update-profile", {
+      method: "PUT",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body)
+    });
+
+    const data = await res.json();
+    if (data.error) {
+      setMessage(data.error);
+      return;
+    }
+
+   if (data.user) {
+      setProfile({
+        username: data.user.username,
+        email: data.user.email,
+        bio: data.user.bio,
+        role: data.user.role,   
+        isVerified: data.user.isVerified
       });
 
-      const data = await res.json();
-      setMessage(data.error || data.message || "Profile updated.");
-    } catch (err) {
-      console.error(err);
-      setMessage("Failed to update profile.");
+      setFormData(prev => ({
+        ...prev,
+        username: data.user.username,
+        email: data.user.email,
+        bio: data.user.bio,
+        role: data.user.role
+      }));
     }
-  };
+
+    setMessage(data.message || "Profile updated successfully!");
+
+    if (onUserUpdate) onUserUpdate(data.user);
+
+      } catch (err) {
+        console.error(err);
+        setMessage("Failed to update profile.");
+      }
+    };
 
   // --- Change password ---
   const handleChangePassword = async (e) => {

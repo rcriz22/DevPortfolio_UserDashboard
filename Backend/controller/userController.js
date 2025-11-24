@@ -17,7 +17,7 @@ export const sendVerificationCode = async (req, res) => {
     const expiry = new Date(Date.now() + 15 * 60 * 1000);
     const user = await User.findById(req.user.id);
 
-    user.pendingEmail = encrypt (newEmail);
+    user.pendingEmail = newEmail.trim().toLowerCase();
     user.emailVerificationToken = token;
     user.emailVerificationExpiry = expiry;
    
@@ -37,20 +37,21 @@ export const sendVerificationCode = async (req, res) => {
 export const verifyEmail = async (req, res) => {
   try {
     const { code } = req.body;
-
     const user = await User.findById(req.user.id);
 
-    if (!user.emailVerificationToken) {
+    if (!user.pendingEmail || !user.emailVerificationToken) {
       return res.status(400).json({ error: "No verification request found." });
     }
 
-    if (user.emailVerificationToken !== code) {
+    if (code !== user.emailVerificationToken) {
       return res.status(400).json({ error: "Invalid verification code." });
     }
 
     if (Date.now() > user.emailVerificationExpiry) {
       return res.status(400).json({ error: "Verification code expired." });
     }
+
+    // Apply new email
     user.email = user.pendingEmail;
     user.pendingEmail = null;
     user.emailVerificationToken = null;
@@ -59,10 +60,9 @@ export const verifyEmail = async (req, res) => {
 
     await user.save();
 
-    res.json({ message: "Email verified  successfully!" });
-
-  } catch (error) {
-    console.error("Verify email code error:", error);
+    res.json({ message: "Email verified successfully!", email: user.email });
+  } catch (err) {
+    console.error("Verify email error:", err);
     res.status(500).json({ error: "Failed to verify email" });
   }
 };
@@ -72,7 +72,7 @@ export const getProfile = async (req, res) => {
     const user = await User.findById(req.user.id);
 
     res.json({
-      email: decrypt(user.email),
+      email: user.email,
       bio: user.bio ? decrypt(user.bio) : null,
       isVerified: user.isVerified,
       createdAt: user.createdAt,
@@ -90,7 +90,7 @@ export const updateProfile = async (req, res) => {
 
     const user = await User.findById(req.user.id);
 
-    if (bio) {
+    if (bio !== undefined) {
       user.bio = encrypt(bio);
     }
 

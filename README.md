@@ -7,17 +7,17 @@ These instructions will help you set up and run the HTTPS server locally on your
     `cd Phase3_Portfolio`  \
     `cd Portfolio_Backend (for my Backend)` \
     `cd Portfolio_Frontend (for my Frontend)`  
-2. **Install Dependencies**
-  For my Portfolio_Frontend
-    react | react-dom | react-router-dom
-These are packages needed for development, building, or linting:
-  vite → build tool and dev server
-  @vitejs/plugin-react → React support for Vite
-  eslint → code linting
-  @eslint/js → ESLint JavaScript parser/config
-  eslint-plugin-react-hooks → linting rules for React hooks
-  eslint-plugin-react-refresh → integration with React Fast Refresh
-  globals → provides global variable definitions for ESLint
+2. **Install Dependencies**  \
+  For my Portfolio_Frontend  \
+    react | react-dom | react-router-dom  \
+These are packages needed for development, building, or linting: \
+  vite → build tool and dev server  \
+  @vitejs/plugin-react → React support for Vite  \
+  eslint → code linting  \
+  @eslint/js → ESLint JavaScript parser/config  \ 
+  eslint-plugin-react-hooks → linting rules for React hooks \
+  eslint-plugin-react-refresh → integration with React Fast Refresh  \
+  globals → provides global variable definitions for ESLint  \
  `npm install -D vite @vitejs/plugin-react eslint @eslint/js eslint-plugin-react-hooks eslint-plugin-react-refresh globals`
  `npm install react react-dom react-router-dom`
 

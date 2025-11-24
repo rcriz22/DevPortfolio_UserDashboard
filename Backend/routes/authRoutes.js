@@ -186,16 +186,18 @@ router.post("/reset-password/:token", async (req, res) => {
 router.get("/me", authenticate, async (req, res) => {
   try {
     const user = await User.findById(req.user.id).select("-passwordHash");
+    if (!user) return res.status(404).json({ error: "User not found" });
 
     res.json({
       user: {
         username: user.username,
-        email: user.email ? decrypt(user.email) : "",
+        email: user.email,
         bio: user.bio ? decrypt(user.bio) : "",
         role: user.role,
         isVerified: user.isVerified,
       }
     });
+
   } catch (err) {
     console.error("Fetch profile error:", err);
     res.status(500).json({ error: "Failed to fetch user info" });
@@ -203,61 +205,70 @@ router.get("/me", authenticate, async (req, res) => {
 });
 
 // Update user profile
-   router.put("/update-profile", authenticate, validateProfileUpdate, async (req, res) => {
-    try {
-      const user = await User.findById(req.user.id);
-      if (!user) return res.status(404).json({ error: "User not found" });
+router.put("/update-profile", authenticate, validateProfileUpdate, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id);
+    if (!user) return res.status(404).json({ error: "User not found" });
 
     const { username, email, bio } = req.body;
 
     // Update username
     if (username && username !== user.username) {
-      const existing = await User.findOne({ username });
-      if (existing) return res.status(400).json({ error: "Username is taken" });
+      const existingUsername = await User.findOne({ username });
+      if (existingUsername) return res.status(400).json({ error: "Username already taken" });
       user.username = username;
     }
 
-    // Normalize incoming email
-    const normalizedEmail = email ? email.trim().toLowerCase() : null;
-    const currentEmail = user.email ? decrypt(user.email).trim().toLowerCase() : null;
-    const pendingEmail = user.pendingEmail ? decrypt(user.pendingEmail).trim().toLowerCase() : null;
+    // Update email (if changed)
+    if (email && email.trim().toLowerCase() !== user.email.toLowerCase()) {
+      const normalizedEmail = email.trim().toLowerCase();
 
-    // Update email (requires re-verification only if truly different)
-    if (normalizedEmail && normalizedEmail !== currentEmail && normalizedEmail !== pendingEmail) {
-      const existingEmail = await User.findOne({ email: encrypt(normalizedEmail) });
-      if (existingEmail) return res.status(400).json({ error: "Email is already used" });
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(normalizedEmail)) {
+        return res.status(400).json({ error: "Invalid email format" });
+      }
 
-      user.pendingEmail = encrypt(normalizedEmail);
+      const existingEmail = await User.findOne({ email: normalizedEmail });
+      if (existingEmail) return res.status(400).json({ error: "Email already in use" });
+
+      user.pendingEmail = normalizedEmail;
       user.emailVerificationToken = crypto.randomBytes(20).toString("hex");
       user.emailVerificationExpiry = Date.now() + 15 * 60 * 1000;
-      user.isVerified = false;
 
-      await sendVerificationCodeEmail(normalizedEmail, "Verify your new email", user.emailVerificationToken);
-        }
+      await sendVerificationCodeEmail(
+        user.pendingEmail,
+        "Verify your new email",
+        user.emailVerificationToken
+      );
+    }
 
-        // Update bio
-        if (bio) {
-          user.bio = encrypt(bio);
-        }
+    // Update bio
+    if (bio !== undefined) {
+      user.bio = encrypt(bio);
+    }
 
-        await user.save();
+    if (req.user.role === "Admin" && req.body.role) {
+      user.role = req.body.role;
+    }
 
-        res.json({
-          message: "Profile updated",
-          user: {
-            username: user.username,
-            email: currentEmail,
-            bio: user.bio ? decrypt(user.bio) : "",
-            role: user.role,
-            isVerified: user.isVerified
-          }
-        });
+    await user.save();
 
-      } catch (err) {
-        console.error("Update profile error:", err);
-        res.status(500).json({ error: "Internal server error" });
+    res.json({
+      message: "Profile updated successfully!",
+      user: {
+        username: user.username,
+        email: user.email,
+        bio: user.bio ? decrypt(user.bio) : "",
+        role: user.role,
+        isVerified: user.isVerified
       }
+    });
+  } catch (error) {
+    console.error("Update profile error:", error);
+    res.status(500).json({ error: "Failed to update profile" });
+  }
 });
+
 
 
 // Change Password

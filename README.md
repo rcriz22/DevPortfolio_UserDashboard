@@ -6,7 +6,7 @@ These instructions will help you set up and run the HTTPS server locally on your
     `cd DevPortfolio_UserDashboard`  \
     `cd Phase3_Portfolio`  \
     `cd Portfolio_Backend (for my Backend)` \
-    `cd Portfolio_Frontend (for my Frontend)`  \
+    `cd Portfolio_Frontend (for my Frontend)`  
 2. **Install Dependencies**
   For my Portfolio_Frontend
     react | react-dom | react-router-dom
